@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import backgroundImage from "../assets/job.jpg";
 
-function Login({ setIsAuthenticated }) {
+const Login = ({ setIsAuthenticated }) => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ Email: "", Password: "" });
   const [showPassword, setShowPassword] = useState(false);
@@ -36,7 +36,7 @@ function Login({ setIsAuthenticated }) {
         // alert("Login successful!");
 
         setIsAuthenticated(true);
-        navigate("/joblist");
+        navigate("/joblistings");
       } else {
         setError(response.data.message || "Login failed. Please try again.");
       }

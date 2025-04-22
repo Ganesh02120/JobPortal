@@ -1,13 +1,10 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import logo from "../assets/logo.png";
 import DOMPurify from "dompurify";
-
 import { ShareIcon, XMarkIcon } from "@heroicons/react/24/solid";
 import ReactQuill from "react-quill";
 import "react-quill/dist/quill.snow.css";
-
 import {
   FaFacebook,
   FaTwitter,
@@ -19,12 +16,12 @@ import {
 
 function JobDescriptionPage() {
   const [isEditing, setIsEditing] = useState(false);
-  const [isLoading, setIsLoading] = useState(true); // ✅ Loading state
+  const [isLoading, setIsLoading] = useState(true);
   const [jobData, setJobData] = useState(null);
-
-  const { Id } = useParams(); // ✅ Get Job ID from URL
-  // console.log(Id);
-  // const cleanData = DOMPurify.sanitize(jobData?.Description); // Removes harmful scripts
+  
+  
+  const { id } = useParams();
+  console.log(id)
   const sanitizeJobData = (data) => {
     if (!data) return {};
 
@@ -96,37 +93,42 @@ function JobDescriptionPage() {
   };
 
   useEffect(() => {
+    
     const fetchJob = async () => {
+      setIsLoading(true);
       try {
         const token = localStorage.getItem("authToken");
         if (!token) {
-          console.error("No token found, please log in.");
+          alert("No authentication token found. Please log in again.");
+          navigate("/login"); // Redirect to login
           return;
         }
-
+     
         const response = await axios.get(
-          `http://156.67.111.32:3120/api/jobPortal/getJobPostingById/${Id}`,
-          { headers: { Authorization: `Bearer ${token}` } }
+          `http://156.67.111.32:3120/api/jobPortal/getJobPostingById/${id}`,
+         
+          { headers: { Authorization: `Bearer ${token}`,"Content-Type": "application/json",} },
         );
-
-        setJobData(response.data);
-        console.log("get", response);
+        if (response.data) {
+          setJobData(response.data);
+          console.log("Job data loaded successfully:", response.data);
+        } else {
+          alert("No job data found.");
+        }
       } catch (error) {
-        console.error(
-          "Error fetching job:",
-          error.response?.data || error.message
-        );
+        console.error("Error fetching job:", error.response?.data || error.message);
+        alert(`Failed to load job data: ${error.response?.data?.message || error.message}`);
       } finally {
-        setIsLoading(false); // ✅ Stop loading when API call is done
+        setIsLoading(false);
       }
     };
-
-    if (Id) fetchJob();
-  }, [Id]);
-  // ✅ Handle Save Changes (POST API)
+   
+    if (id) fetchJob();
+  }, [id]);
+  // Handle Save Changes (POST API)
   const handleSave = async () => {
     try {
-      const api = `http://156.67.111.32:3120/api/jobportal/updateJobPosting/${Id}`;
+      const api = `http://156.67.111.32:3120/api/jobportal/updateJobPosting/${id}`;
       const token = localStorage.getItem("authToken");
 
       if (!token) {
@@ -153,33 +155,21 @@ function JobDescriptionPage() {
       alert("Failed to update job. Please try again.");
     }
   };
-  // ✅ Handle changes when editing
-  // const handleChange = (field, value) => {
-  //   setJobData((prev) => ({ ...prev, [field]: value }));
-  // };
-
-  // Handles list item updates
-  // const handleListChange = (index, value) => {
-  //   const updatedList = [...jobData.requirements];
-  //   updatedList[index] = value;
-  //   setJobData({ ...jobData, requirements: updatedList });
-  // };
-  const handleApply = (Id) => {
-    navigate(`/jobapply/${Id}`);
+  const handleApply = (id) => {
+    navigate(`/jobapply/${id}`);
   };
 
-  // ✅ If still loading, show a spinner or message
+  // If still loading, show a spinner or message
 
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <img src="" alt="Loading..." className="w-20 h-20" />
-        {/* Replace with a loading GIF or spinner */}
+        <img src="/Spinner.gif" alt="Loading..." className="w-20 h-20" />
       </div>
     );
   }
 
-  // ✅ If no data found, show an error message
+  // If no data found, show an error message
   if (!jobData) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -187,17 +177,10 @@ function JobDescriptionPage() {
           Job not found or data unavailable.
         </p>
       </div>
-    );
+    );    
   }
   return (
-    <div className="flex flex-col min-h-screen bg-white py-3">
-      {/* Header Section */}
-      <header className="py-4 px-4 sm:px-6 lg:px-20 xl:px-72 flex justify-start">
-        <img src={logo} alt="b2ylogo" className="w-32 sm:w-40 h-auto mb-4" />
-      </header>
-
-      <hr className="w-full border-gray-300 mb-2" />
-
+    <div className="flex flex-col min-h-screen bg-white py-20">
       {/* Job Title Section */}
       <div className="flex items-start justify-between pb-4 px-4 sm:px-6 lg:px-20 xl:px-72">
         <div className="flex-grow">
@@ -218,7 +201,7 @@ function JobDescriptionPage() {
         <div className="ml-4">
           {!isEditing ? (
             <button
-              className="bg-red-600 text-white px-4 py-2 rounded-md"
+              className="bg-blue-600 text-white px-4 py-2 rounded-md"
               onClick={() => setIsEditing(true)}
             >
               Edit Job Description
@@ -302,14 +285,14 @@ function JobDescriptionPage() {
       {/* Buttons */}
       <div className="flex flex-col sm:flex-row gap-2 mt-4 px-4 sm:px-6 lg:px-20 xl:px-72 pb-4">
         <button
-          className="border border-red-600 text-red-600 px-10 py-2 rounded-md hover:bg-red-50 w-full sm:w-auto"
+          className="border border-blue-600 text-white-600 px-10 py-2 rounded-md hover:bg-blue-50 w-full sm:w-auto"
           onClick={() => navigate("/joblist")}
         >
           View All Jobs
         </button>
         <button
-          className="bg-red-600 text-white px-10 py-2 rounded-md hover:bg-red-700 w-full sm:w-auto"
-          onClick={() => handleApply(Id)}
+          className="bg-blue-600 text-white px-10 py-2 rounded-md hover:bg-blue-700 w-full sm:w-auto"
+          onClick={() => handleApply(id)}
         >
           Apply
         </button>
@@ -321,7 +304,7 @@ function JobDescriptionPage() {
       <div className="flex flex-col sm:flex-row justify-between items-center gap-2 px-4 sm:px-6 lg:px-20 xl:px-72">
         <div>
           <button
-            className="bg-red-600 text-white px-4 py-2 rounded-md flex items-center hover:bg-red-700  sm:w-auto"
+            className="bg-blue-600 text-white px-4 py-2 rounded-md flex items-center hover:bg-blue-700  sm:w-auto"
             onClick={() => setIsOpen(true)}
           >
             <ShareIcon className="h-5 w-5 mr-2" /> Share this job
@@ -393,32 +376,6 @@ function JobDescriptionPage() {
           />
         )}
       </div>
-
-      {/* <div className="mt-6 px-4 sm:px-6 md:px-72">
-        <h3 className="text-lg font-semibold">Requirements:</h3>
-        <ul className="list-disc list-inside text-gray-700 space-y-2">
-          {(jobData?.requirements || []).map((req, index) => (
-            <li key={index}>
-              {isEditing ? (
-                <ReactQuill
-                  value={req}
-                  onChange={(value) => {
-                    const updatedRequirements = [...jobData.requirements];
-                    updatedRequirements[index] = value;
-                    setJobData({
-                      ...jobData,
-                      requirements: updatedRequirements,
-                    });
-                  }}
-                  className="border border-gray-300 w-full"
-                />
-              ) : (
-                <span dangerouslySetInnerHTML={{ __html: req }} />
-              )}
-            </li>
-          ))}
-        </ul>
-      </div> */}
 
       {/* Experience */}
       <div className="mt-6 px-4 sm:px-6 md:px-72">
@@ -500,7 +457,7 @@ function JobDescriptionPage() {
             name="jobResponsibilities"
             value={jobData?.JobResponsibilities || ""}
             onChange={(value) =>
-              setJobData({ ...jobData, JobResponsibilities: value })
+              setJobData({ ...jobData,JobResponsibilities: value })
             }
             className="w-full p-2"
           />
@@ -509,6 +466,7 @@ function JobDescriptionPage() {
             dangerouslySetInnerHTML={{ __html: cleanData.JobResponsibilities }}
             className="text-gray-700"
           />
+          
         )}
       </div>
 
@@ -539,9 +497,9 @@ function JobDescriptionPage() {
         {isEditing ? (
           <ReactQuill
             name="SkillsRequired"
-            value={jobData?.SkillsRequired || ""}
+            value={jobData?.SkillsRequired}
             onChange={(value) =>
-              setJobData({ ...jobData, SkillsRequired: value })
+              setJobData({ ...jobData, SkillsRequired:value })
             }
             className=" p-2  rounded-md w-full h-24 resize-none"
           />

@@ -5,59 +5,52 @@ import {
   Navigate,
 } from "react-router-dom";
 import { useState } from "react";
-import DualSideNavbar from "./Components/SideNavbar";
-import JobListings from "./Components/JobListings";
-import ApplicationForm from "./Components/ApplicationForm";
-import JobDescriptionPage from "./Components/JobDescription";
-import JobPosting from "./Components/AddJobs";
-import Login from "./Components/login";
-import JobApplicants from "./Components/GetApplicant";
+
+import Navbar from "./components/Navbar";
+import JobListings from "./pages/JobListings";
+import ApplicationForm from "./components/ApplicationForm";
+import JobDescriptionPage from "./components/JobDescription";
+import JobPosting from "./pages/AddJobs";
+import Login from "./pages/Login";
+import JobApplicants from "./pages/JobApplicants";
+import Homepage from "./pages/Home";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Check token on page reload
+  useState(() => {
+    const token = localStorage.getItem("authToken");
+    setIsAuthenticated(!!token);
+  }, []);
+
   return (
     <Router>
+      <Navbar />
       <Routes>
-        // Public Route - Login Page
+        <Route path="/" element={<Homepage />} />
+        <Route path="/login" element={<Login setIsAuthenticated={setIsAuthenticated} />} />
+        <Route path="/joblistings" element={<JobListings />} />
+        <Route path="/jobapply/:id" element={<ApplicationForm />} />
+        <Route path="/jobdescription/:id" element={<JobDescriptionPage />} />
+
+        {/* Protected Routes */}
         <Route
-          path="/"
-          element={<Login setIsAuthenticated={setIsAuthenticated} />}
-        />
-        // Protected Routes
-        <Route
-          path="/*"
+          path="/addjobs"
           element={
-            isAuthenticated ? (
-              <div className="flex">
-                <DualSideNavbar />
-                <div className="flex-1">
-                  <Routes>
-                    <Route path="/joblist" element={<JobListings />} />
-                    <Route path="/jobapply/:Id" element={<ApplicationForm />} />
-                    <Route path="/jobsdetails/:Id" element={<JobDescriptionPage />} />
-                    <Route path="/postjob" element={<JobPosting />} />
-                    <Route path="/allApplicants" element={<JobApplicants/>} />
-                  </Routes>
-                </div>
-              </div>
-            ) : (
-              <Navigate to="/" />
-            )
+            isAuthenticated ? <JobPosting /> : <Navigate to="/login" replace />
           }
         />
+        <Route
+          path="/applicants"
+          element={
+            isAuthenticated ? <JobApplicants /> : <Navigate to="/jobapplicants" replace />
+          }
+        />
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-      {/* <div className="flex">
-        <DualSideNavbar />
-        <div className="flex-1 ">
-          <Routes>
-            <Route path="/" element={<JobListings />} />
-            <Route path="/jobapply" element={<ApplicationForm />} />
-            <Route path="/showjobs" element={<JobDescriptionPage />} />
-            <Route path="/postjob" element={<JobPosting />} />
-          </Routes>
-        </div>
-      </div> */}
     </Router>
   );
 }
