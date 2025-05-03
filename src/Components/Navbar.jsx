@@ -1,14 +1,16 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 export default function Navbar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Update authentication status on route change
   useEffect(() => {
     const token = localStorage.getItem("authToken");
     setIsAuthenticated(!!token);
-  }, []);
+  }, [location]);
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");
@@ -19,10 +21,9 @@ export default function Navbar() {
 
   return (
     <nav className="bg-gradient-to-r from-[#7c3aed] to-[#6366f1] text-white px-6 py-3 shadow-md flex items-center justify-between w-full fixed top-0 z-50">
-      
-      {/* Left Section: Logo + Navigation */}
+      {/* Left: Brand + Navigation */}
       <div className="flex items-center gap-6">
-        <span className="text-xl font-bold">JobNest</span>
+        <span className="text-xl font-bold">B2Y</span>
 
         <NavLink
           to="/"
@@ -64,36 +65,21 @@ export default function Navbar() {
         </NavLink>
       </div>
 
-      {/* Right Section: Auth Buttons */}
+      {/* Right: Auth Buttons */}
       <div className="flex items-center gap-6">
         {!isAuthenticated ? (
-          <>
-            <NavLink
-              to="/login"
-              className={({ isActive }) =>
-                `px-2 py-1 border-b-2 ${
-                  isActive
-                    ? "border-white font-semibold"
-                    : "border-transparent hover:border-white hover:font-medium transition-all duration-200"
-                }`
-              }
-            >
-              Login
-            </NavLink>
-
-            {/* <NavLink
-              to="/register"
-              className={({ isActive }) =>
-                `px-2 py-1 border-b-2 ${
-                  isActive
-                    ? "border-white font-semibold"
-                    : "border-transparent hover:border-white hover:font-medium transition-all duration-200"
-                }`
-              }
-            >
-              Register
-            </NavLink> */}
-          </>
+          <NavLink
+            to="/login"
+            className={({ isActive }) =>
+              `px-2 py-1 border-b-2 ${
+                isActive
+                  ? "border-white font-semibold"
+                  : "border-transparent hover:border-white hover:font-medium transition-all duration-200"
+              }`
+            }
+          >
+            Login
+          </NavLink>
         ) : (
           <button
             onClick={handleLogout}

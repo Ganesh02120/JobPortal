@@ -296,7 +296,7 @@ function ApplicationForm() {
     <div className="flex flex-col min-h-screen ">
       {/* Header Section */}
       <header className="   py-4  md:pl-[400px] sm:flex justify-start px-3">
-        <img src={logo} alt="b2ylogo" className="w-40 h-auto mb-4" />
+       
       </header>
       <hr />
 

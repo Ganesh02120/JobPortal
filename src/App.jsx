@@ -33,6 +33,7 @@ function App() {
         <Route path="/joblistings" element={<JobListings />} />
         <Route path="/jobapply/:id" element={<ApplicationForm />} />
         <Route path="/jobdescription/:id" element={<JobDescriptionPage />} />
+        <Route path="/jobapplicants" element={<JobApplicants />} />
 
         {/* Protected Routes */}
         <Route

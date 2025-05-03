@@ -80,13 +80,8 @@ const JobApplicants = () => {
                 <tr>
                   <th className="border p-2 text-left">Name</th>
                   <th className="border p-2 text-left">Email</th>
-                  <th className="border p-2 text-left hidden sm:table-cell">
-                    Phone
-                  </th>
+                  <th className="border p-2 text-left hidden sm:table-cell">Phone</th>
                   <th className="border p-2 text-left">Job Applied</th>
-                  <th className="border p-2 text-left hidden md:table-cell">
-                    Job ID
-                  </th>
                   <th className="border p-2 text-left">Resume</th>
                 </tr>
               </thead>
@@ -96,20 +91,26 @@ const JobApplicants = () => {
                     <tr key={index} className="text-left border-b hover:bg-blue-50">
                       <td className="border p-2">{app.Candidate?.FullName || "N/A"}</td>
                       <td className="border p-2">{app.Candidate?.Email || "N/A"}</td>
-                      <td className="border p-2 hidden sm:table-cell">{app.Candidate?.PhoneNumber || "N/A"}</td>
-                      <td className="border p-2">{app?.JobTitle || "N/A"}</td>
-                      <td className="border p-2 hidden md:table-cell text-center">
-                        <span className="px-2 py-1 rounded bg-blue-500 text-white text-xs sm:text-sm">
-                          {app?.JobId || "Unknown"}
-                        </span>
+                      <td className="border p-2 hidden sm:table-cell">
+                        {app.Candidate?.PhoneNumber || "N/A"}
                       </td>
+                      <td className="border p-2">{app?.JobTitle || "N/A"}</td>
                       <td className="border p-2 flex items-center gap-2">
                         {app.Candidate?.ResumeUrl ? (
                           <>
-                            <button onClick={() => setPreviewUrl(app.Candidate.ResumeUrl)} className="text-green-600 hover:text-green-800">
+                            <button
+                              onClick={() => setPreviewUrl(app.Candidate.ResumeUrl)}
+                              className="text-green-600 hover:text-green-800"
+                            >
                               <EyeIcon className="h-5 w-5" />
                             </button>
-                            <a href={app.Candidate.ResumeUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800" download>
+                            <a
+                              href={app.Candidate.ResumeUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800"
+                              download
+                            >
                               <ArrowDownTrayIcon className="h-5 w-5" />
                             </a>
                           </>
@@ -121,12 +122,69 @@ const JobApplicants = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="6" className="text-center p-4 text-gray-500">No applicants found</td>
+                    <td colSpan="5" className="text-center p-4 text-gray-500">
+                      No applicants found
+                    </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
+
+          {/* For small screens (Optional) */}
+          <div className="sm:hidden flex flex-col gap-4">
+            {applicants.map((app, index) => (
+              <div key={index} className="border p-4 rounded shadow-sm bg-blue-50">
+                <p className="font-semibold">{app.Candidate?.FullName || "N/A"}</p>
+                <p className="text-sm">{app.Candidate?.Email || "N/A"}</p>
+                <p className="text-sm">{app.Candidate?.PhoneNumber || "N/A"}</p>
+                <p className="text-sm italic">{app?.JobTitle || "N/A"}</p>
+                <div className="mt-2 flex gap-2">
+                  {app.Candidate?.ResumeUrl ? (
+                    <>
+                      <button
+                        onClick={() => setPreviewUrl(app.Candidate.ResumeUrl)}
+                        className="text-green-600 hover:text-green-800"
+                      >
+                        <EyeIcon className="h-5 w-5" />
+                      </button>
+                      <a
+                        href={app.Candidate.ResumeUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:text-blue-800"
+                        download
+                      >
+                        <ArrowDownTrayIcon className="h-5 w-5" />
+                      </a>
+                    </>
+                  ) : (
+                    <span className="text-gray-400">No Resume</span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Resume Preview Modal */}
+          {previewUrl && (
+            <div className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex justify-center items-center z-50">
+              <div className="bg-white p-6 rounded-lg relative">
+                <button
+                  onClick={() => setPreviewUrl(null)}
+                  className="absolute top-2 right-2"
+                >
+                  <XMarkIcon className="h-6 w-6 text-gray-600" />
+                </button>
+                <iframe
+                  src={previewUrl}
+                  width="500"
+                  height="600"
+                  title="Resume Preview"
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

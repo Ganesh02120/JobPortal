@@ -1,173 +1,228 @@
 import { useState, useEffect } from "react";
-import { Briefcase, IndianRupee, MapPin, Bookmark } from "lucide-react";
+import { Briefcase, IndianRupee, MapPin, X, Search } from "lucide-react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 const JobListings = () => {
   const [jobs, setJobs] = useState([]);
-  const [city, setCity] = useState("");
-  const [category, setCategory] = useState("");
-  const [role, setRole] = useState("");
+  const [allJobs, setAllJobs] = useState([]);
+  const [filterOptions, setFilterOptions] = useState({ cities: [], departments: [], jobTypes: [], experiences: [], salaries: [] });
+  const [filters, setFilters] = useState({ cities: [], departments: [], jobTypes: [], experiences: [], salaries: [] });
+  const [pendingFilters, setPendingFilters] = useState({ cities: [], departments: [], jobTypes: [], experiences: [], salaries: [] });
+  const [openFilters, setOpenFilters] = useState({ cities: true, departments: true, jobTypes: false, experiences: false, salaries: false });
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const pageSize = 3; // Change this number if needed
+  const [loading, setLoading] = useState(false);
+  const pageSize = 5;
 
-  const Navigate = useNavigate();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const syncFiltersToUrl = (filters) => {
+    const params = new URLSearchParams();
+    Object.entries(filters).forEach(([key, values]) => {
+      values.forEach(val => params.append(key, val));
+    });
+    setSearchParams(params);
+  };
 
   useEffect(() => {
-    const fetchJobs = async () => {
-      try {
-        const token = localStorage.getItem("authToken");
-        if (!token) return;
+    const initialFilters = {};
+    for (const [key, values] of searchParams.entries()) {
+      if (!initialFilters[key]) initialFilters[key] = [];
+      initialFilters[key].push(values);
+    }
+    setFilters(prev => ({ ...prev, ...initialFilters }));
+    setPendingFilters(prev => ({ ...prev, ...initialFilters }));
+  }, []);
 
-        const params = new URLSearchParams();
-        params.append("page", currentPage);
-        params.append("limit", pageSize);
-        if (city) params.append("city", city);
-        if (category) params.append("category", category);
-        if (role) params.append("role", role);
+  const fetchJobs = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("authToken");
+      if (!token) return;
 
-        const api = `http://156.67.111.32:3120/api/jobPortal/getAllJobPostings?${params.toString()}`;
-        const response = await axios.get(api, {
+      const response = await axios.get(
+        "http://156.67.111.32:3120/api/jobportal/getAllJobPostings",
+        {
           headers: { Authorization: `Bearer ${token}` },
-        });
+          params: {
+            JobType: filters.jobTypes,
+            City: filters.cities,
+            Department: filters.departments,
+            Experience: filters.experiences,
+            Salary: filters.salaries,
+          },
+        }
+      );
 
-        setJobs(response.data.jobPostings || []);
-        setTotalPages(response.data.totalPages || 1);
-      } catch (error) {
-        console.error("Error fetching jobs:", error);
-      }
-    };
+      const data = response.data.jobPostings || [];
+      setAllJobs(data);
 
+      const cities = [...new Set(data.map(job => job.City).filter(Boolean))];
+      const departments = [...new Set(data.map(job => job.Department).filter(Boolean))];
+      const jobTypes = [...new Set(data.map(job => job.JobType).filter(Boolean))];
+      const experiences = [...new Set(data.map(job => job.ExperienceRequired || job.Experience).filter(Boolean))];
+      const salaries = [...new Set(data.map(job => job.SalaryRange || job.Salary).filter(Boolean))];
+
+      setFilterOptions({ cities, departments, jobTypes, experiences, salaries });
+
+      const start = (currentPage - 1) * pageSize;
+      const end = start + pageSize;
+      setJobs(data.slice(start, end));
+      setTotalPages(Math.ceil(data.length / pageSize));
+    } catch (error) {
+      console.error("Error fetching jobs:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    syncFiltersToUrl(filters);
     fetchJobs();
-  }, [currentPage, city, category, role]);
+  }, [filters, currentPage]);
 
-  const handleNavigation = (Id) => {
-    Navigate(`/jobdescription/${Id}`);
+  const toggleFilter = (key, value) => {
+    setPendingFilters(prev => {
+      const list = new Set(prev[key]);
+      list.has(value) ? list.delete(value) : list.add(value);
+      return { ...prev, [key]: Array.from(list) };
+    });
   };
 
-  const handleApply = (Id) => {
-    Navigate(`/jobapply/${Id}`);
+  const toggleFilterSection = (key) => {
+    setOpenFilters(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const removeHtmlTags = (str) => {
-    if (!str) return "";
-    return str.replace(/<\/?[^>]+(>|$)/g, "");
+  const handleNavigation = (Id) => navigate(`/jobdescription/${Id}`);
+  const handleApply = (Id) => navigate(`/jobapply/${Id}`);
+  const removeHtmlTags = (str) => str?.replace(/<[^>]*>?/gm, "") || "";
+
+  const clearFilters = () => {
+    setPendingFilters({ cities: [], departments: [], jobTypes: [], experiences: [], salaries: [] });
+    setFilters({ cities: [], departments: [], jobTypes: [], experiences: [], salaries: [] });
+    setCurrentPage(1);
   };
+
+  const applyFilters = () => {
+    setFilters({ ...pendingFilters });
+    setCurrentPage(1);
+  };
+
+  const renderFilterSection = (title, key, options) => (
+    <div className="mb-6">
+      <h4
+        className="text-md font-semibold text-blue-600 mb-2 uppercase tracking-wide cursor-pointer flex justify-between items-center"
+        onClick={() => toggleFilterSection(key)}
+      >
+        {title}
+        <span className="text-gray-400">{openFilters[key] ? '-' : '+'}</span>
+      </h4>
+      {openFilters[key] && (
+        <div className="flex flex-wrap gap-2">
+          {options.map((option, i) => (
+            <button
+              key={i}
+              onClick={() => toggleFilter(key, option)}
+              className={`px-3 py-1 rounded-full border text-sm font-medium transition duration-200 ${pendingFilters[key].includes(option) ? "bg-gradient-to-r from-blue-400 to-blue-600 text-white border-blue-500" : "bg-white hover:bg-gray-100 border-gray-300 text-gray-700"}`}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 
   return (
-    <div className="bg-gray-100 min-h-screen px-4 sm:px-10 py-10">
-  {/* Logo */}
-  <div className="flex items-center mb-6">
-    {/* <img src="/logo1.png" alt="logo" className="w-32 sm:w-40" /> */}
-  </div>
+    <div className="bg-gray-50 min-h-screen pt-24 px-4 sm:px-10 pb-10">
+      <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8">
+        <aside className="lg:w-1/4 w-full p-6 bg-white shadow rounded-lg">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold text-gray-800">Filters</h2>
+            <button onClick={clearFilters} className="text-sm text-red-600 hover:underline">Clear</button>
+          </div>
+          {renderFilterSection("City", "cities", filterOptions.cities)}
+          {renderFilterSection("Department", "departments", filterOptions.departments)}
+          {renderFilterSection("Job Type", "jobTypes", filterOptions.jobTypes)}
+          {renderFilterSection("Experience", "experiences", filterOptions.experiences)}
+          {renderFilterSection("Salary", "salaries", filterOptions.salaries)}
+          <button onClick={applyFilters} className="mt-4 w-full bg-blue-600 text-white py-2 rounded-md font-semibold hover:bg-blue-700 transition">
+            Apply Filters
+          </button>
+        </aside>
 
-  {/* Layout */}
-  <div className="flex flex-col md:flex-row gap-6">
-    {/* Filters */}
-    <div className="md:w-1/4 w-full space-y-4">
-      <select
-        className="border border-gray-300 py-2 px-3 w-full rounded text-gray-800"
-        onChange={(e) => setCity(e.target.value)}
-      >
-        <option value="">Filter by City</option>
-        <option value="Bengaluru">Bengaluru</option>
-        <option value="Mumbai">Mumbai</option>
-      </select>
+        <main className="lg:w-3/4 w-full space-y-6">
+          {Object.entries(filters).some(([_, v]) => v.length > 0) && (
+            <div className="flex flex-wrap gap-3">
+              {Object.entries(filters).flatMap(([key, values]) =>
+                values.map(value => (
+                  <span key={`${key}-${value}`} className="flex items-center bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                    {value}
+                    <X size={14} className="ml-2 cursor-pointer" onClick={() => toggleFilter(key, value)} />
+                  </span>
+                ))
+              )}
+            </div>
+          )}
 
-      <select
-        className="border border-gray-300 py-2 px-3 w-full rounded text-gray-800"
-        onChange={(e) => setCategory(e.target.value)}
-      >
-        <option value="">Filter by Category</option>
-        <option value="Manual Testing">Manual Testing</option>
-        <option value="Automation Testing">Automation Testing</option>
-      </select>
+          {loading ? (
+            <p className="text-center text-gray-600">Loading jobs...</p>
+          ) : jobs.length > 0 ? (
+            jobs.map((job, index) => (
+              <div
+                key={index}
+                className="bg-white p-6 rounded-lg border shadow hover:shadow-md transition cursor-pointer"
+                onClick={() => handleNavigation(job.Id)}
+              >
+                <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-4">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-800">{removeHtmlTags(job.Title)}</h3>
+                    <p className="text-sm text-gray-600">{job.JobType}</p>
+                    <div className="flex flex-wrap gap-4 text-gray-500 text-sm mt-2">
+                      <span className="flex items-center gap-1"><Briefcase size={14} /> {job.ExperienceRequired || job.Experience}</span>
+                      <span className="flex items-center gap-1"><IndianRupee size={14} /> {job.SalaryRange || job.Salary || "Not Disclosed"}</span>
+                      <span className="flex items-center gap-1"><MapPin size={14} /> {job.City}, {job.State}</span>
+                    </div>
+                  </div>
+                  <button
+                    className="bg-blue-600 text-white text-sm font-medium px-5 py-2 rounded-md hover:bg-blue-700"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleApply(job.Id);
+                    }}
+                  >
+                    Apply Now
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-center text-gray-500">No jobs available</p>
+          )}
 
-      <select
-        className="border border-gray-300 py-2 px-3 w-full rounded text-gray-800"
-        onChange={(e) => setRole(e.target.value)}
-      >
-        <option value="">Filter by Role</option>
-        <option value="SDET">SDET</option>
-        <option value="Lead Tester">Lead Tester</option>
-      </select>
-    </div>
-
-    {/* Job Listings */}
-    <div className="md:w-3/4 w-full space-y-4">
-      {jobs && jobs.length > 0 ? (
-        jobs.map((job, index) => (
-          <div
-  key={index}
-  className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md transition cursor-pointer"
-  onClick={() => handleNavigation(job.Id)}
->
-  <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-    {/* Job Info */}
-    <div className="space-y-1">
-      <p className="text-lg font-semibold text-gray-900">
-        {removeHtmlTags(job.Title)}
-      </p>
-      <p className="text-sm text-gray-600">{job.JobType}</p>
-      <div className="flex flex-wrap gap-4 text-gray-500 text-sm mt-1">
-        <span className="flex items-center gap-1">
-          <Briefcase size={14} /> {job.Experience}
-        </span>
-        <span className="flex items-center gap-1">
-          <IndianRupee size={14} /> Not Disclosed
-        </span>
-        <span className="flex items-center gap-1">
-          <MapPin size={14} /> {job.City}, {job.State}
-        </span>
+          <div className="flex justify-center items-center gap-6 pt-6">
+            <button
+              className={`px-4 py-2 border rounded ${currentPage === 1 ? "text-gray-400 cursor-not-allowed" : "hover:underline"}`}
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </button>
+            <span className="font-medium text-gray-800">Page {currentPage} of {totalPages}</span>
+            <button
+              className={`px-4 py-2 border rounded ${currentPage === totalPages ? "text-gray-400 cursor-not-allowed" : "hover:underline"}`}
+              onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </button>
+          </div>
+        </main>
       </div>
     </div>
+  );
+};
 
-    {/* Apply Button */}
-    <button
-      className="bg-blue-500 text-white font-semibold px-4 py-2 rounded-md hover:bg-blue-600"
-      onClick={(e) => {
-        e.stopPropagation();
-        handleApply(job.Id);
-      }}
-    >
-      Apply Now
-    </button>
-  </div>
-</div>
-
-        ))
-      ) : (
-        <p className="text-center text-gray-500">No jobs available</p>
-      )}
-
-      {/* Pagination */}
-      <div className="flex justify-center items-center gap-4 pt-6">
-        <button
-          className={`px-4 py-2 border rounded ${
-            currentPage === 1 ? "text-gray-400 cursor-not-allowed" : "hover:underline"
-          }`}
-          onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-          disabled={currentPage === 1}
-        >
-          Previous
-        </button>
-        <span className="font-semibold">
-          Page {currentPage} of {totalPages}
-        </span>
-        <button
-          className={`px-4 py-2 border rounded ${
-            currentPage === totalPages ? "text-gray-400 cursor-not-allowed" : "hover:underline"
-          }`}
-          onClick={() => setCurrentPage((prev) => (prev < totalPages ? prev + 1 : prev))}
-          disabled={currentPage === totalPages}
-        >
-          Next
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-)
-}
 export default JobListings;

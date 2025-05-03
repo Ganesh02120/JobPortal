@@ -49,7 +49,7 @@ const Login = ({ setIsAuthenticated }) => {
   };
 
   return (
-    <div className="flex min-h-screen justify-center items-center bg-gray-200 p-4">
+    <div className="flex min-h-screen  justify-center items-center bg-gray-200 p-5">
       <div className="w-full max-w-4xl bg-white shadow-lg rounded-xl border border-gray-300 overflow-hidden flex">
         {/* Left Section: Login Form */}
         <div className="flex flex-col justify-center items-center w-full sm:w-1/2 p-8">
@@ -119,7 +119,7 @@ const Login = ({ setIsAuthenticated }) => {
             <div className="flex justify-center mt-6">
               <button
                 type="submit"
-                className="w-full sm:w-1/2 bg-[#5a3d2b] text-white font-semibold p-3 rounded-lg hover:bg-[#442c1f] transition duration-300 shadow-md"
+                className="w-full sm:w-1/2 bg-[#7c3aed] text-white font-semibold p-3 rounded-lg hover:bg-[#6366f1] transition duration-300 shadow-md"
                 disabled={loading}
               >
                 {loading ? "Signing In..." : "Sign In"}
